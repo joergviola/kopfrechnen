@@ -1,0 +1,162 @@
+<html>
+<head>
+  	<title>Kopfrechnen</title>
+	<style>
+	  body {width: 100%, height: 100%; padding: 20px; font-family: Verdana; font-size: 50pt;}
+	  #content {background-color: #88FF88; width: 80%; height: 80%; padding: 10%; text-align: center; -webkit-border-radius:50px;}
+	  body input {background-color: #00AA00; width: 40%; padding-left: 10%; padding-right: 10%; font-family: Verdana; font-size: 50pt;-webkit-border-radius:50px;}
+	  body button {background-color: #00AA00; width: 100%; font-family: Verdana; font-size: 50pt;-webkit-border-radius:50px;}
+	  .request {padding: 0px; width: 100px; text-align: center;}
+	  body.connected #login { display: none; }
+	  body.connected #logout { display: block; }
+	  body.not_connected #login { display: block; }
+      body.not_connected #logout { display: none; }
+      .showme {display: block;}
+      .hideme {display: none;}
+	</style>
+</head>
+<body>
+	<div id="fb-root"></div>
+	<script>
+  		(function() {
+    		var e = document.createElement('script'); e.async = true;
+        		e.src = document.location.protocol + '//connect.facebook.net/en_US/all.js';
+        		document.getElementById('fb-root').appendChild(e);
+        	}());
+	  window.fbAsyncInit = function() {
+    	FB.init({ appId: '272915729407741', 
+	      status: true, 
+    	  cookie: true,
+      	  xfbml: true,
+    	  oauth: true});
+
+        FB.Event.subscribe('auth.statusChange', handleStatusChange);  
+
+	  };
+	 function handleStatusChange(response) {
+  		 document.body.className = response.authResponse ? 'connected' : 'not_connected';
+  		 q = document.getElementById('question');
+  		 a = document.getElementById('answer');
+  		 a.className = "hideme";
+  		 q.className = "showme";
+
+   		 if (response.authResponse) {
+			updateUserInfo(response);   		 
+			if (window.location.search!="") {
+				requests = parameter('request_ids');
+				if (requests!=null) {
+					requestId = requests.split("%2C")[0];
+					FB.api('', {"ids": requestId }, function(response) {
+						console.log(response)
+					    a.className = "showme";
+					    q.className = "hideme";
+				  		text = document.getElementById('questionText');
+						asker = document.getElementById("asker");
+				  		asker.value = response[requestId].from.id;
+				  		text.innerHTML =  response[requestId].from.name +" "+ response[requestId].message;
+						FB.api(requestId, 'delete', function(response) {
+							console.log(response);
+						});
+					  });
+				}
+			}
+   		 }
+ 	 }
+   	 function loginUser() {    
+     	FB.login(function(response) { }, {scope:'email'});     
+     }
+	function updateUserInfo(response) {
+		FB.api('/me', function(response) {
+			console.log(response);
+			document.getElementById('user-info').innerHTML = '<img width="20%" src="https://graph.facebook.com/' + response.id + '/picture">Hallo ' + response.name;
+		});
+	}     
+	function sendRequest(op) {
+		f1 = document.getElementById("f1");
+		f2 = document.getElementById("f2");
+		msg = "fragt: Was ist " + f1.value + op + f2.value + "?";
+		FB.ui({
+			method: 'apprequests',
+			message: msg,
+		}, 
+		function(response) {
+			console.log('sendRequest response: ', response);
+		});
+	}
+	function sendAnswer() {
+		q = document.getElementById("questionText");
+		a = document.getElementById("answerText");
+		asker = document.getElementById("asker");
+		msg = "antwortet auf die Frage '"+q.innerHTML+"': "+a.value;
+		FB.ui({
+			method: 'apprequests',
+			message: msg,
+			to : asker.value
+		}, 
+		function(response) {
+			q = document.getElementById('question');
+			a = document.getElementById('answer');
+		    a.className = "hideme";
+		    q.className = "showme";
+			console.log('sendAnswer response: ', response);
+		});
+	}
+	function postAnswer() {
+		q = document.getElementById("questionText");
+		a = document.getElementById("answerText");
+		FB.ui({
+			    method: 'feed',
+			    name: 'Ich habe im Kopf gerechnet!',
+			    caption: 'Kopfrechnen!',
+			    description: "Frage: '"+q.innerHTML+"', meine Antwort: "+a.value,
+			    link: 'http://kopfrechnung.appspot.com?selbstversuchen=1'
+			  }, 
+			function(response) {
+				q = document.getElementById('question');
+				a = document.getElementById('answer');
+			    a.className = "hideme";
+			    q.className = "showme";
+				console.log('sendAnswer response: ', response);
+			});
+	}
+	function parameter(name) {
+		params = window.location.search.slice(1).split('&');
+		for (var i = 0; i < params.length; i++) {
+			param = params[i].split('=');
+			if (param[0]==name)
+				return param[1];
+		}
+		return null;
+	}
+	</script>
+
+	<div id="content">
+	 	<div id="user-info"></div>
+	 	<div id="question">
+			<p>
+				<input id="f1" type="number">&nbsp;
+				<input id="f2" type="number">
+			<p>
+	   		<p>
+				<button class="request" onClick="sendRequest('+');">+</button>
+				<button class="request" onClick="sendRequest('-');">-</button>
+				<button class="request" onClick="sendRequest('*');">*</button>
+				<button class="request" onClick="sendRequest('/');">/</button>
+			</p>
+		</div>
+		<div id="answer" class="hideme">
+			<span id="questionText"></span><br/>
+			<input id="asker" type="hidden"></input>
+			<input id="answerText" type="number"></input><br/>
+			<button onClick="sendAnswer();">Senden</button>
+			<button onClick="postAnswer();">Posten</button>
+		</div>
+		<div id="login" class="not_connected">
+	   		<p><button onClick="loginUser();">Login</button></p>
+	 	</div>
+	 	<div id="logout" class="not_connected">
+	   		<p><button  onClick="FB.logout();">Logout</button></p>
+	 	</div>
+	</div>
+ </body>
+</html>
