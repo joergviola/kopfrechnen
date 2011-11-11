@@ -1,21 +1,30 @@
 <html>
 <head>
   	<title>Kopfrechnen</title>
-	<style>
-	  body {width: 100%, height: 100%; padding: 20px; font-family: Verdana; font-size: 50pt;}
-	  #content {background-color: #88FF88; width: 80%; height: 80%; padding: 10%; text-align: center; -webkit-border-radius:50px;}
-	  body input {background-color: #00AA00; width: 40%; padding-left: 10%; padding-right: 10%; font-family: Verdana; font-size: 50pt;-webkit-border-radius:50px;}
-	  body button {background-color: #00AA00; width: 100%; font-family: Verdana; font-size: 50pt;-webkit-border-radius:50px;}
-	  .request {padding: 0px; width: 100px; text-align: center;}
+	  <meta name="viewport" 
+	  	  content="initial-scale=1.5,minimum-scale=1.5,maximum-scale=1.5,user-scalable=no"/>
+	  <meta name="apple-mobile-web-app-capable" content="yes" />	
+	  <style>
+	  body {margin: 0px;; font-family: Verdana;}
+	  #content { height:100%; background-color: #88FF88;text-align: center;}
+	  body input {background-color: #00AA00;-webkit-border-radius:5px;}
+	  body button {background-color: #00AA00;-webkit-border-radius:5px;}
+	  .request {padding: 10px; text-align: center;}
 	  body.connected #login { display: none; }
 	  body.connected #logout { display: block; }
+	  body.connected #question { display: block; }
+	  body.connected #user-info { display: block; }
+	  body.connected #answer { display: none; }
 	  body.not_connected #login { display: block; }
       body.not_connected #logout { display: none; }
+	  body.not_connected #question { display: none; }
+	  body.not_connected #user-info { display: none; }
+	  body.not_connected #answer { display: none; }
       .showme {display: block;}
       .hideme {display: none;}
 	</style>
 </head>
-<body>
+<body class="not_connected">
 	<div id="fb-root"></div>
 	<script>
   		(function() {
@@ -68,7 +77,7 @@
 	function updateUserInfo(response) {
 		FB.api('/me', function(response) {
 			console.log(response);
-			document.getElementById('user-info').innerHTML = '<img width="20%" src="https://graph.facebook.com/' + response.id + '/picture">Hallo ' + response.name;
+			document.getElementById('user-info').innerHTML = '<img width="20%" src="https://graph.facebook.com/' + response.id + '/picture"><br>Hallo ' + response.name;
 		});
 	}     
 	function sendRequest(op) {
@@ -81,6 +90,18 @@
 		}, 
 		function(response) {
 			console.log('sendRequest response: ', response);
+		});
+	}
+	function postRequest() {
+		FB.ui({
+		    method: 'feed',
+		    name: 'Ich habe im Kopf gerechnet!',
+		    caption: 'Kopfrechnen!',
+		    description: 'Finde heraus, welcher Deiner Freunde am besten Kopfrechnen kann!',
+		    link: 'http://kopfrechnung.appspot.com'
+		  }, 
+		function(response) {
+			console.log('postRequest response: ', response);
 		});
 	}
 	function sendAnswer() {
@@ -101,24 +122,6 @@
 			console.log('sendAnswer response: ', response);
 		});
 	}
-	function postAnswer() {
-		q = document.getElementById("questionText");
-		a = document.getElementById("answerText");
-		FB.ui({
-			    method: 'feed',
-			    name: 'Ich habe im Kopf gerechnet!',
-			    caption: 'Kopfrechnen!',
-			    description: "Frage: '"+q.innerHTML+"', meine Antwort: "+a.value,
-			    link: 'http://kopfrechnung.appspot.com?selbstversuchen=1'
-			  }, 
-			function(response) {
-				q = document.getElementById('question');
-				a = document.getElementById('answer');
-			    a.className = "hideme";
-			    q.className = "showme";
-				console.log('sendAnswer response: ', response);
-			});
-	}
 	function parameter(name) {
 		params = window.location.search.slice(1).split('&');
 		for (var i = 0; i < params.length; i++) {
@@ -134,7 +137,7 @@
 	 	<div id="user-info"></div>
 	 	<div id="question">
 			<p>
-				<input id="f1" type="number">&nbsp;
+				<input id="f1" type="number"><br>
 				<input id="f2" type="number">
 			<p>
 	   		<p>
@@ -143,13 +146,13 @@
 				<button class="request" onClick="sendRequest('*');">*</button>
 				<button class="request" onClick="sendRequest('/');">/</button>
 			</p>
+			<p><button onClick="postRequest();">Posten</button></p>
 		</div>
 		<div id="answer" class="hideme">
 			<span id="questionText"></span><br/>
 			<input id="asker" type="hidden"></input>
 			<input id="answerText" type="number"></input><br/>
 			<button onClick="sendAnswer();">Senden</button>
-			<button onClick="postAnswer();">Posten</button>
 		</div>
 		<div id="login" class="not_connected">
 	   		<p><button onClick="loginUser();">Login</button></p>
